@@ -1,0 +1,16 @@
+# Arquivos compilados
+/bin/
+*.class
+
+# Configurações de IDE (Eclipse/IntelliJ/VSCode)
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+.vscode/
+
+# Arquivos temporários e builds
+dist/
+build/
+*.jar
