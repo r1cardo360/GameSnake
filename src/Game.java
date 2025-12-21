@@ -4,7 +4,11 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 public class Game extends JPanel implements KeyListener{
@@ -14,20 +18,84 @@ public class Game extends JPanel implements KeyListener{
 	private boolean gameOver = false;
 	private int frames = 0;
 	
+	//animation
+	private BufferedImage[] appleSprites;
+	private int appleCrurrentFrame = 0;
+	private int appleAnimTimer = 0;
+	private int appleAnimSpeed = 10;
+	
+	private BufferedImage[] headSprites;
+	private BufferedImage bodyHor, bodyVer;
+	private BufferedImage curveEsquerdaCima, curveEsquerdaBaixo, curveDireitaCima, curveDireitaBaixo;
+	
+	
 	public Game(){
 		this.setPreferredSize(new Dimension(640, 480));
 		this.setBackground(Color.BLACK);
 		
 		this.setFocusable(true);
 		this.addKeyListener(this);
+		
+		carregarSpriteMaca();
+		carregarSpritesCobra();
 	}
+	
+	public void carregarSpriteMaca() {
+		try {
+			BufferedImage sheet = ImageIO.read(new File("assets/maca.png"));
+			
+			appleSprites = new BufferedImage[4];
+			
+			int tamanhoDoSprite = 48;
+			
+			for(int i = 0; i < 4; i++) {
+				appleSprites[i] = sheet.getSubimage(i * tamanhoDoSprite, 0, tamanhoDoSprite, tamanhoDoSprite);
+			}
+		}catch(IOException e) {
+			e.printStackTrace();
+			System.out.println("Error não encontrei a imagem maca.png");
+		}
+	}
+	
+	private void carregarSpritesCobra() {
+        try {
+            BufferedImage sheet = ImageIO.read(new File("assets/HeadSnake.png"));
+
+            headSprites = new BufferedImage[4];
+            int tamanhoSprite = 32;
+
+            for(int i = 0; i < 4; i++) {
+                headSprites[i] = sheet.getSubimage(i * tamanhoSprite, 0, tamanhoSprite, tamanhoSprite);
+            }
+            
+            bodyHor = ImageIO.read(new File("assets/snake_body_hor.png"));
+			bodyVer = ImageIO.read(new File("assets/snake_body_ver.png"));
+			
+			curveEsquerdaCima = ImageIO.read(new File("assets/esquerda_cima.png"));
+	        curveEsquerdaBaixo = ImageIO.read(new File("assets/esquerda_baixo.png"));
+	        curveDireitaCima = ImageIO.read(new File("assets/direita_cima.png"));
+	        curveDireitaBaixo = ImageIO.read(new File("assets/direita_baixo.png"));
+			
+        } catch (IOException e) {
+        	e.printStackTrace();
+            System.out.println("Erro: Não achei a imagem da cabeça da cobra!");
+        }
+    }
 	
 	public void update() {
 		
 		if(gameOver) return;
 		
-		frames ++;
+		appleAnimTimer ++;
+		if(appleAnimTimer >= appleAnimSpeed) {
+			appleAnimTimer = 0;
+			appleCrurrentFrame ++;
+			if(appleCrurrentFrame >= 4) {
+				appleCrurrentFrame = 0;
+			}
+		}
 		
+		frames ++;
 		if(frames > 12) {
 			snake.tick();
 			checkColision();
@@ -47,9 +115,10 @@ public class Game extends JPanel implements KeyListener{
 	protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		
+		//Grade
+		/*
 		g.setColor(Color.GRAY);
 		int tamanhoGrade = 20;
-		
 		for(int i = 0; i < 640; i += tamanhoGrade) {
 			g.drawLine(i, 0, i, 480);
 		}
@@ -57,18 +126,99 @@ public class Game extends JPanel implements KeyListener{
 		for(int i = 0; i < 480; i+= tamanhoGrade) {
 			g.drawLine(0, i, 640, i);
 		}
+		*/
 		
-		g.setColor(Color.GREEN);
-		for(int i = 0; i < snake.corpo.size(); i++) {
-			Node n = snake.corpo.get(i);
-			g.fillRect(n.x, n.y, snake.getWidth(), snake.getHeight());
+		if (bodyHor != null && bodyVer != null && curveDireitaBaixo != null && curveDireitaCima != null && curveEsquerdaBaixo != null && curveEsquerdaCima != null) {
+
+		    for (int i = 0; i < snake.corpo.size(); i++) {
+		        Node current = snake.corpo.get(i);
+
+		        Node prev;
+		        if (i == 0) {
+		            prev = current; 
+		        } else {
+		            prev = snake.corpo.get(i - 1);
+		        }
+
+		        Node next;
+		        if (i < snake.corpo.size() - 1) {
+		            next = snake.corpo.get(i + 1);
+		        } else {
+		            next = new Node(snake.positionX, snake.positionY);
+		        }
+
+		        if (prev.x == current.x && next.x == current.x) {
+		            g.drawImage(bodyVer, current.x, current.y, snake.getWidth(), snake.getHeight(), null);
+		        } 
+		        else if (prev.y == current.y && next.y == current.y) {
+		            g.drawImage(bodyHor, current.x, current.y, snake.getWidth(), snake.getHeight(), null);
+		        } 
+		        
+		        else {
+		            
+		            boolean temCima  = (prev.y < current.y || next.y < current.y);
+		            boolean temBaixo = (prev.y > current.y || next.y > current.y);
+		            boolean temEsq   = (prev.x < current.x || next.x < current.x);
+		            boolean temDir   = (prev.x > current.x || next.x > current.x);
+
+		            
+		            if (temCima && temDir) {
+		                g.drawImage(curveEsquerdaCima, current.x, current.y, snake.getWidth(), snake.getHeight(), null);
+		            } 
+		            else if (temCima && temEsq) {
+		                g.drawImage(curveDireitaCima, current.x, current.y, snake.getWidth(), snake.getHeight(), null);
+		            } 
+		            else if (temBaixo && temDir) {
+		                g.drawImage(curveEsquerdaBaixo, current.x, current.y, snake.getWidth(), snake.getHeight(), null);
+		            } 
+		            else if (temBaixo && temEsq) {
+		                g.drawImage(curveDireitaBaixo, current.x, current.y, snake.getWidth(), snake.getHeight(), null);
+		            }
+		        }
+		    }
+		} else {
+		    g.setColor(Color.GREEN);
+		    for (int i = 0; i < snake.corpo.size(); i++) {
+		        Node n = snake.corpo.get(i);
+		        g.fillRect(n.x, n.y, snake.getWidth(), snake.getHeight());
+		    }
 		}
 		
-		g.setColor(Color.BLUE);
-		g.fillRect(snake.positionX, snake.positionY, snake.getWidth(), snake.getHeight());
+		int indiceCabeca = 0;
+
+        if (snake.velX == 1) {
+            indiceCabeca = 0;
+        } else if (snake.velX == -1) {
+            indiceCabeca = 1;
+        } else if (snake.velY == -1) {
+            indiceCabeca = 2;
+        } else if (snake.velY == 1) {
+            indiceCabeca = 3;
+        }
+
+        if (headSprites != null) {
+             g.drawImage(headSprites[indiceCabeca],
+                        snake.positionX,
+                        snake.positionY,
+                        snake.getWidth(),
+                        snake.getHeight(),
+                        null);
+        } else {
+            g.setColor(Color.BLUE);
+            g.fillRect(snake.positionX, snake.positionY, snake.getWidth(), snake.getHeight());
+        }
 		
-		g.setColor(Color.RED);
-		g.fillOval(apple.positionX, apple.positionY, apple.getWidth(), apple.getHeight());
+		if(appleSprites != null) {
+			g.drawImage(appleSprites[appleCrurrentFrame], 
+					    apple.positionX,
+					    apple.positionY,
+					    apple.getWidth(),
+					    apple.getHeight(),
+					    null);
+		} else {
+			g.setColor(Color.RED);
+			g.fillOval(apple.positionX, apple.positionY, apple.getWidth(), apple.getHeight());
+		}
 		
 		if(gameOver) {
 			g.setColor(new Color(0, 0, 0, 150));
@@ -90,7 +240,6 @@ public class Game extends JPanel implements KeyListener{
 	
 	public void checkColision() {
 		if(snake.getBounds().intersects(apple.getBounds())) {
-			System.out.println("Comeu maça");
 			apple.appeExist = false;
 			snake.tamanho++;
 		}
